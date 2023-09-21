@@ -7,15 +7,6 @@ width = 0
 height = 0
 crossword_grid = []
 grid_solutions = []
-
-"""
-Prints the crossword grid by row
-"""
-def print_grid():
-    for row in crossword_grid:
-        for letter in row:
-            print(letter, end=" ")
-        print()
         
 """
 Converts a list of characters to a string
@@ -26,9 +17,16 @@ def convert(s):
     str1 = functools.reduce(lambda x,y : x+y, s)
     return str1
 
-# create dictionary of every scrabble word
+# create a dictionary of every Scrabble word
 words_dict = {}
 with open("scrabble.txt", 'r') as file:
+    lines = file.readlines()
+    for word in lines:
+        word = word.strip().lower()
+        words_dict[word] = 1
+
+# also add every custom word not included in Scrabble
+with open("custom_word_list.txt", 'r') as file:
     lines = file.readlines()
     for word in lines:
         word = word.strip().lower()
@@ -69,8 +67,8 @@ def find_solutions(row, col, grid):
     if row == height:
         grid_solutions.append(grid)
 
-    # base case: the row and col position aren't blank, so skip
-    elif grid[row][col] != '.':
+    # base case: the row and col position is a gap, so skip
+    elif grid[row][col] == '#':
 
         # if the row and col position is at the end of a row, go to the next row
         if col >= width - 1:
@@ -81,53 +79,51 @@ def find_solutions(row, col, grid):
             find_solutions(row, col + 1, grid)
 
     else:
-        temp_grid = copy.deepcopy(grid)
 
-        # iterate through each letter in the alphabet and put it in that position
-        for letter in alphabet:
-            temp_grid[row][col] = letter
+        # if the current position is already a letter, just check if the word is valid
+        if grid[row][col] != '.':
 
             # check if the across word is either unfinished or invalid
             across_is_valid = True
-            if col == width - 1 or temp_grid[row][col + 1] == '#':
+            if col == width - 1 or grid[row][col + 1] == '#':
 
                 curr_col = col
                 while curr_col >= 0:
 
                     # if this is the end of the row, check if the word is in the scrabble dictionary
-                    if temp_grid[row][curr_col] == '#':
+                    if grid[row][curr_col] == '#':
                         
                         # if the word is only one character long, it shouldn't be checked
                         if col - curr_col > 1:
-                            across_is_valid = convert(temp_grid[row][curr_col + 1 : col + 1]) in words_dict
+                            across_is_valid = convert(grid[row][curr_col + 1 : col + 1]) in words_dict
                     
                     elif curr_col == 0:
                         
                         # if the word is only one character long, it shouldn't be checked
                         if col - curr_col >= 1:
-                            across_is_valid = convert(temp_grid[row][curr_col : col + 1]) in words_dict
+                            across_is_valid = convert(grid[row][curr_col : col + 1]) in words_dict
 
                     curr_col -= 1
             
             if not across_is_valid:
-                continue
+                return
 
             # check if the down word is either unfinished or invalid
             down_is_valid = True
-            if row == height - 1 or temp_grid[row + 1][col] == '#':
+            if row == height - 1 or grid[row + 1][col] == '#':
 
                 curr_row = row
                 while curr_row >= 0:
 
                     # if this is the end of the column, check if the word is in the scrabble dictionary
-                    if temp_grid[curr_row][col] == '#':
+                    if grid[curr_row][col] == '#':
                         
                         # if the word is only one character long, it shouldn't be checked
                         if row - curr_row > 1:
 
                             column = []
                             for r in range(curr_row + 1, row + 1):
-                                column.append(temp_grid[r][col])
+                                column.append(grid[r][col])
 
                             down_is_valid = convert(column) in words_dict
                     
@@ -138,17 +134,92 @@ def find_solutions(row, col, grid):
 
                             column = []
                             for r in range(curr_row, row + 1):
-                                column.append(temp_grid[r][col])
+                                column.append(grid[r][col])
 
                             down_is_valid = convert(column) in words_dict
 
                     curr_row -= 1
-            
+
             if down_is_valid:
                 if col >= width - 1:
-                    find_solutions(row + 1, 0, copy.deepcopy(temp_grid)) 
+                    find_solutions(row + 1, 0, copy.deepcopy(grid)) 
                 else:
-                    find_solutions(row, col + 1, copy.deepcopy(temp_grid))
+                    find_solutions(row, col + 1, copy.deepcopy(grid))
+
+        # if the position is a blank space, fill it and check if that makes a valid word
+        else:
+
+            # create a copy of the current grid
+            temp_grid = copy.deepcopy(grid)
+
+            # iterate through each letter in the alphabet and put it in that position
+            for letter in alphabet:
+                temp_grid[row][col] = letter
+
+                # check if the across word is either unfinished or invalid
+                across_is_valid = True
+                if col == width - 1 or temp_grid[row][col + 1] == '#':
+
+                    curr_col = col
+                    while curr_col >= 0:
+
+                        # if this is the end of the row, check if the word is in the dictionary
+                        if temp_grid[row][curr_col] == '#':
+                            
+                            # if the word is only one character long, it shouldn't be checked
+                            if col - curr_col > 1:
+                                across_is_valid = convert(temp_grid[row][curr_col + 1 : col + 1]) in words_dict
+                            break
+                        
+                        elif curr_col == 0:
+                            
+                            # if the word is only one character long, it shouldn't be checked
+                            if col - curr_col >= 1:
+                                across_is_valid = convert(temp_grid[row][curr_col : col + 1]) in words_dict
+
+                        curr_col -= 1
+                
+                if not across_is_valid:
+                    continue
+
+                # check if the down word is either unfinished or invalid
+                down_is_valid = True
+                if row == height - 1 or temp_grid[row + 1][col] == '#':
+
+                    curr_row = row
+                    while curr_row >= 0:
+
+                        # if this is the end of the column, check if the word is in the scrabble dictionary
+                        if temp_grid[curr_row][col] == '#':
+                            
+                            # if the word is only one character long, it shouldn't be checked
+                            if row - curr_row > 1:
+
+                                column = []
+                                for r in range(curr_row + 1, row + 1):
+                                    column.append(temp_grid[r][col])
+
+                                down_is_valid = convert(column) in words_dict
+                            break
+                        
+                        elif curr_row == 0:
+
+                            # if the word is only one character long, it shouldn't be checked
+                            if row - curr_row >= 1:
+
+                                column = []
+                                for r in range(curr_row, row + 1):
+                                    column.append(temp_grid[r][col])
+
+                                down_is_valid = convert(column) in words_dict
+
+                        curr_row -= 1
+                
+                if down_is_valid:
+                    if col >= width - 1:
+                        find_solutions(row + 1, 0, copy.deepcopy(temp_grid)) 
+                    else:
+                        find_solutions(row, col + 1, copy.deepcopy(temp_grid))
 
 find_solutions(0, 0, crossword_grid)
 
