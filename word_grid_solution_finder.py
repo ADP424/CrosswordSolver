@@ -66,7 +66,7 @@ Recursively finds solutions to the input crossword grid
 def find_solutions(row, col, grid):
 
     # base case: the grid is full, so it is a solution
-    if row == height - 1 and col == width - 1:
+    if row == height:
         grid_solutions.append(grid)
 
     # base case: the row and col position aren't blank, so skip
@@ -153,6 +153,8 @@ def find_solutions(row, col, grid):
 find_solutions(0, 0, crossword_grid)
 
 with open("result.txt", 'w') as result_file:
+    result_file.write("Solutions: " + str(len(grid_solutions)) + "\n\n")
+
     for grid in grid_solutions:
         for row in grid:
             for char in row:
